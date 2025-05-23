@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kidz Klub Weekly Payment</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f9f9f9;
+      padding: 2rem;
+    }
+    .container {
+      max-width: 600px;
+      margin: auto;
+      background: #fff;
+      padding: 2rem;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    h2 {
+      text-align: center;
+      color: #2b2b2b;
+    }
+    label {
+      display: block;
+      margin: 1rem 0 0.5rem;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    button {
+      margin-top: 1.5rem;
+      width: 100%;
+      padding: 1rem;
+      background-color: #4caf50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    .note {
+      margin-top: 1rem;
+      font-size: 0.9rem;
+      color: #777;
+    }
+    .history {
+      margin-top: 2rem;
+      background-color: #f0f0f0;
+      padding: 1rem;
+      border-radius: 8px;
+    }
+    .history h3 {
+      margin-bottom: 0.5rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 0.5rem;
+      text-align: left;
+    }
+    th {
+      background-color: #eee;
+    }
+    .confirmation {
+      margin-top: 1rem;
+      background-color: #d4edda;
+      color: #155724;
+      padding: 1rem;
+      border-radius: 5px;
+      display: none;
+    }
+    .receipt-link {
+      display: block;
+      margin-top: 0.5rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Kidz Klub Weekly Payment</h2>
+    <form id="paymentForm">
+      <label for="parentName">Parent Name</label>
+      <input type="text" id="parentName" name="parentName" required />
+
+      <label for="childName">Child's Name</label>
+      <input type="text" id="childName" name="childName" required />
+
+      <label for="weekOf">Week Starting</label>
+      <input type="date" id="weekOf" name="weekOf" required />
+
+      <label for="attendance">Was your child absent or were we closed one or more days this week?</label>
+      <select id="attendance" name="attendance" onchange="togglePaymentField()">
+        <option value="no">No (Proceed with full payment)</option>
+        <option value="closed">Yes, the center was closed (Skip payment)</option>
+        <option value="partial">Yes, child was absent 1 or more days</option>
+      </select>
+
+      <div id="absenceDaysSection" style="display:none">
+        <label for="daysAbsent">How many days was your child absent?</label>
+        <input type="number" id="daysAbsent" name="daysAbsent" min="1" max="5" value="1" onchange="updatePaymentAmount()" />
+      </div>
+
+      <div id="paymentSection">
+        <label id="paymentAmountLabel">Payment Amount: $286</label>
+
+        <label for="paymentMethod">Select Payment Method</label>
+        <select id="paymentMethod" name="paymentMethod" required>
+          <option value="card">Card</option>
+          <option value="cashapp">Cash App</option>
+          <option value="zelle">Zelle</option>
+          <option value="venmo">Venmo</option>
+          <option value="cash">Cash</option>
+        </select>
+      </div>
+
+      <button type="submit">Submit</button>
+      <p class="note">* No payment is required only if the center was closed for the entire week. Otherwise, absences reduce the fee at $57.20/day missed.</p>
+    </form>
+
+    <div class="confirmation" id="confirmationMessage"></div>
+
+    <div class="history">
+      <h3>Payment History</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Week</th>
+            <th>Status</th>
+            <th>Amount</th>
+            <th>Method</th>
+          </tr>
+        </thead>
+        <tbody id="historyTable">
+          <tr><td>05/13/2025</td><td>Paid</td><td>$286</td><td>Card</td></tr>
+          <tr><td>05/06/2025</td><td>Center Closed</td><td>$0</td><td>-</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    let currentAmount = 286;
+
+    function togglePaymentField() {
+      const attendance = document.getElementById("attendance").value;
+      const paymentSection = document.getElementById("paymentSection");
+      const absenceDaysSection = document.getElementById("absenceDaysSection");
+      const paymentLabel = document.getElementById("paymentAmountLabel");
+
+      if (attendance === "closed") {
+        currentAmount = 0;
+        paymentSection.style.display = "none";
+        absenceDaysSection.style.display = "none";
+        paymentLabel.textContent = "Payment Amount: $0";
+      } else if (attendance === "partial") {
+        absenceDaysSection.style.display = "block";
+        paymentSection.style.display = "block";
+        updatePaymentAmount();
+      } else {
+        currentAmount = 286;
+        absenceDaysSection.style.display = "none";
+        paymentSection.style.display = "block";
+        paymentLabel.textContent = "Payment Amount: $286";
+      }
+    }
+
+    function updatePaymentAmount() {
+      const daysAbsent = parseInt(document.getElementById("daysAbsent").value || 0);
+      const fullAmount = 286;
+      const dailyRate = fullAmount / 5;
+      currentAmount = Math.max(0, fullAmount - (daysAbsent * dailyRate));
+      document.getElementById("paymentAmountLabel").textContent = `Payment Amount: $${currentAmount.toFixed(2)}`;
+    }
+
+    function generateReceipt(parentName, childName, weekOf, amount, method, status) {
+      const receiptContent = `Receipt for Kidz Klub Payment
+
+Parent Name: ${parentName}
+Child's Name: ${childName}
+Week Of: ${weekOf}
+Status: ${status}
+Amount: $${amount}
+Payment Method: ${method}
+
+Thank you for your payment!`;
+      const blob = new Blob([receiptContent], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      return url;
+    }
+
+    document.getElementById("paymentForm").addEventListener("submit", function(event) {
+      event.preventDefault();
+
+      const parentName = document.getElementById("parentName").value;
+      const childName = document.getElementById("childName").value;
+      const weekOf = document.getElementById("weekOf").value;
+      const attendance = document.getElementById("attendance").value;
+      const paymentMethod = document.getElementById("paymentMethod").value;
+
+      const status = attendance === "closed" ? "Center Closed" : "Paid";
+      const method = attendance === "closed" ? "-" : paymentMethod;
+
+      const newRow = document.createElement("tr");
+      newRow.innerHTML = `<td>${weekOf}</td><td>${status}</td><td>$${currentAmount.toFixed(2)}</td><td>${method}</td>`;
+      document.getElementById("historyTable").appendChild(newRow);
+
+      const confirmation = document.getElementById("confirmationMessage");
+      confirmation.innerHTML = `Thank you ${parentName}, your payment of $${currentAmount.toFixed(2)} has been recorded.`;
+      confirmation.style.display = "block";
+
+      const receiptLink = generateReceipt(parentName, childName, weekOf, currentAmount.toFixed(2), method, status);
+      confirmation.innerHTML += `<div class='receipt-link'><a href='${receiptLink}' download='receipt-${weekOf}.txt'>Download Receipt</a></div>`;
+
+      document.getElementById("paymentForm").reset();
+      togglePaymentField();
+    });
+  </script>
+</body>
+</html>
